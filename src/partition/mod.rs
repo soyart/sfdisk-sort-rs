@@ -10,13 +10,22 @@ pub struct Partition {
     pub(crate) start_block: usize,
 
     // For reconstructing sfdisk dump output
-    pub(crate) name: String,
+    pub(crate) name: String, // This will be full path, e.g. /dev/sda1
     pub(crate) extras: Vec<String>,
+}
+
+impl std::fmt::Display for Partition {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let joined_extras: String = self.extras.join(" ");
+        write!(f, "{0} : start= {1}, {2}", self.name, self.start_block, joined_extras)
+        // /dev/sda1 : start= 2048, size= 409600, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE
+    }
 }
 
 #[cfg(test)]
 pub mod partition_tests {
     use super::Partition;
+    use super::parse;
     use std::collections::HashMap;
     impl Partition {
         fn new_from_start_block(start_block: usize) -> Self {
@@ -24,6 +33,27 @@ pub mod partition_tests {
             this.start_block = start_block;
             this
         }
+    }
+
+    #[test]
+    fn test_display() {
+        let part = Partition{
+            designation: 1,
+            name: String::from("/dev/sda1"),
+            start_block: 69,
+            extras: vec![
+                String::from("size="),
+                String::from("60086239,"),
+                String::from("type=0FC63DAF-8483-4772-8E79-3D69D8477DE4,"),
+                String::from("uuid=AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE,"),
+                String::from("it"),
+                String::from("ain't"),
+                String::from("me"),
+                String::from("babe"),
+            ]
+        };
+
+        assert!(parse::is_sfdisk_partition_line(&format!("{}", part)));
     }
 
     #[test]
