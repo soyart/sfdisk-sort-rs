@@ -1,14 +1,13 @@
-pub mod parser;
-pub mod parser_tests;
+pub mod parse;
 
 /// Represents what matters for sfdisk-sort to reassign the names in the partition table.
 /// Fields `designation` and `start_block` are used for sorting.
-// Traits Clone is now only used for testing - TODO: remove?
-#[derive(Default, Debug, Clone, PartialEq)]
+// Trait Clone is now only used for testing - TODO: remove?
+#[derive(Default, Debug, PartialEq, Clone)]
 pub struct Partition {
     // For sorting
     pub(crate) designation: usize,
-    pub(crate) start_block: u64,
+    pub(crate) start_block: usize,
 
     // For reconstructing sfdisk dump output
     pub(crate) name: String,
@@ -20,7 +19,7 @@ pub mod partition_tests {
     use super::Partition;
     use std::collections::HashMap;
     impl Partition {
-        fn new_from_start_block(start_block: u64) -> Self {
+        fn new_from_start_block(start_block: usize) -> Self {
             let mut this = Self::default();
             this.start_block = start_block;
             this
