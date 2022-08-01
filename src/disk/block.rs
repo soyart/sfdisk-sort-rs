@@ -18,8 +18,8 @@ pub enum LinuxBlockDevice {
 
 const SCSI_REGEX: &str = r"(sd)[a-z]";
 const VIRT_REGEX: &str = r"(vd)[a-z]";
-const MMBCLK_REGEX: &str = r"(mmcblk)\d+[p]";
-const NVME_REGEX: &str = r"(nvme)\d+[n]\d+[p]";
+const MMBCLK_REGEX: &str = r"(mmcblk)\d+";
+const NVME_REGEX: &str = r"(nvme)\d+[n]\d+";
 
 lazy_static! {
     static ref BLK_REGEX: HashMap<LinuxBlockDevice, Regex> = HashMap::from([
