@@ -164,7 +164,7 @@ mod test_parse {
             let parsed = match parse_sfdisk_partition_line(part_line) {
                 Ok(part) => part,
                 Err(err) => {
-                    println!("error parsing: {}", err);
+                    eprintln!("error parsing: {}", err);
                     Partition::default()
                 }
             };
