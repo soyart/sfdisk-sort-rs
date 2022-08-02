@@ -24,13 +24,16 @@ pub fn parse_sfdisk_device_name_line(s: &str) -> Result<String, String> {
         ));
     }
     let caps = caps.unwrap();
-    if let Some(device_name) = caps.name("device_name") {
-        return Ok(String::from(device_name.as_str()));
+
+    let device_name = caps.name("device_name");
+    if device_name.is_none() {
+        return Err(format!(
+            "failed to parse device name from 'device' line: {}",
+            s
+        ));
     }
-    return Err(format!(
-        "failed to parse device name from 'device' line: {}",
-        s
-    ));
+
+    Ok(String::from(device_name.unwrap().as_str()))
 }
 
 /// Parses the `sfdisk -d` text output into Disk.

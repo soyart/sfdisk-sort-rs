@@ -75,7 +75,7 @@ pub fn linux_part_prefix_and_part_num(
         ));
     }
 
-    let caps = caps.unwrap();    
+    let caps = caps.unwrap();
     let prefix = caps.name("prefix");
     if prefix.is_none() {
         return Err(format!(
