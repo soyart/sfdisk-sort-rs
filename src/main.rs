@@ -28,7 +28,7 @@ fn main() {
     print_disk(this_disk);
 
     println!();
-    println!("# See https://github.com/artnoi43/sfdisk-sort-rs/blob/main/README.md to see what to do whith this output\n");
+    println!("# See https://github.com/artnoi43/sfdisk-sort-rs/blob/main/README.md to see what to do whith this output");
 }
 
 /// Prints disk in `sfdisk -d` dump format. `disk::Disk` does not implements Display,
