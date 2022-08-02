@@ -1,6 +1,5 @@
 use crate::linux::block;
-
-use super::partition::Partition;
+use super::partition::{Partition, parse};
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -32,6 +31,62 @@ pub fn parse_sfdisk_device_name_line(s: &str) -> Result<String, String> {
         s
     ));
 }
+
+
+
+/// Parses the `sfdisk -d` text output into Disk.
+pub fn parse_full_disk(prog_input: String) -> Result<Disk, String> {
+    let mut device_name: Option<String> = None;
+    let mut header_lines: Vec<String> = Vec::new();
+    let mut partitions: Vec<Partition> = Vec::new();
+    for (c, input_line) in prog_input.lines().collect::<Vec<&str>>().iter().enumerate() {
+        // Parse partition line (will continue)
+        if parse::is_sfdisk_partition_line(input_line) {
+            let part = match parse::parse_sfdisk_partition_line(input_line) {
+                Ok(valid_partition) => valid_partition,
+                Err(err) => {
+                    eprintln!("error parsing partition on line {}", c+1);
+                    return Err(err);
+                },
+            };
+            partitions.push(part);
+            continue
+        }
+
+        // Parse device name (part of so-called 'header lines'), won't continue
+        if is_sfdisk_device_name_line(input_line) {
+            match parse_sfdisk_device_name_line(input_line) {
+                Ok(text) => {
+                    device_name = Some(text);
+                }
+                Err(err) => {
+                    eprintln!("error parsing device name on line {}", c+1);
+                    return Err(err);
+                }
+            }
+        }
+        header_lines.push(String::from(*input_line));
+    }
+
+    if device_name.is_none() {
+        panic!("fatal: missing device name")
+    }
+    if header_lines.is_empty() {
+        panic!("fatal: missing header lines")
+    }
+
+    let device_name = device_name.unwrap();
+    let this_disk = match Disk::new(&device_name, header_lines, partitions) {
+        Ok(d) => d,
+        Err(err) => {
+            eprintln!("error creating new disk {}", err);
+            return Err(err);
+        },
+    };
+
+    Ok(this_disk)
+}
+
 
 #[derive(Default, Debug, PartialEq)]
 pub struct Disk {
