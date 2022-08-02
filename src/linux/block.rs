@@ -75,22 +75,23 @@ pub fn linux_part_prefix_and_part_num(
         ));
     }
 
-    let caps = caps.unwrap();
-    if let Some(prefix) = caps.name("prefix") {
-        if let Some(part_num) = caps.name("part_num") {
-            return Ok((prefix.as_str(), part_num.as_str()));
-        } else {
-            return Err(format!(
-                "missing partition number for {:?} (partition name {})",
-                blk_dev, part_name
-            ));
-        }
-    } else {
+    let caps = caps.unwrap();    
+    let prefix = caps.name("prefix");
+    if prefix.is_none() {
         return Err(format!(
             "missing prefix for {:?} (partition name {})",
             blk_dev, part_name
         ));
     }
+    let part_num = caps.name("part_num");
+    if part_num.is_none() {
+        return Err(format!(
+            "missing partition number for {:?} (partition name {})",
+            blk_dev, part_name
+        ));
+    }
+
+    Ok((prefix.unwrap().as_str(), part_num.unwrap().as_str()))
 }
 
 impl core::fmt::Debug for LinuxBlockDevice {
