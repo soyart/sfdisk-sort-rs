@@ -2,7 +2,7 @@ use super::Partition;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-const SFDISK_PARTITION_LINE_PATTERN: &str = r"(?P<full_path>/dev/(?P<part_name>\w+(?P<part_num>\d+)))\s+:\s+(start=\s+)(?P<start_block>\d+)[,](?P<rest>.*)";
+const SFDISK_PARTITION_LINE_PATTERN: &str = r"(?P<full_path>/dev/(\w+(?P<part_num>\d+)))\s+:\s+(:?start=\s+)(?P<start_block>\d+)[,](?P<rest>.*)";
 
 lazy_static! {
     static ref PARTITION_LINE_REGEX: Regex = Regex::new(SFDISK_PARTITION_LINE_PATTERN).unwrap();
@@ -80,7 +80,7 @@ pub fn parse_sfdisk_partition_line<'a>(line: &'a str) -> Result<Partition, Strin
 mod test_parse {
     use super::Partition;
     use super::{parse_sfdisk_partition_line, SFDISK_PARTITION_LINE_PATTERN};
-    use crate::disk::block;
+    use crate::linux::block;
     use crate::partition::parse::is_sfdisk_partition_line;
 
     use lazy_static::lazy_static;
@@ -88,8 +88,7 @@ mod test_parse {
     use std::collections::HashMap;
 
     lazy_static! {
-        static ref KEYS: Vec<&'static str> =
-            vec!["full_path", "part_name", "part_num", "start_block"];
+        static ref KEYS: Vec<&'static str> = vec!["full_path", "part_num", "start_block"];
     }
 
     #[test]
@@ -102,8 +101,6 @@ mod test_parse {
         let caps = caps.unwrap();
         for key in KEYS.iter() {
             assert!(caps.name(key).is_some());
-            let captured = caps.name(key).unwrap();
-            println!("{} {}", key, captured.as_str())
         }
     }
 
@@ -119,7 +116,6 @@ mod test_parse {
                     Partition {
                         designation: 1,
                         start_block: 2048,
-                        // name_scheme: NameScheme::Legacy,
                         name: String::from("/dev/sda1"),
                         extras: vec![
                             String::from("size="),
@@ -142,7 +138,6 @@ mod test_parse {
                     Partition {
                         designation: 1,
                         start_block: 2048,
-                        // name_scheme: NameScheme::Legacy,
                         name: String::from("/dev/nvme0n1p1"),
                         extras: vec![
                             String::from("size="),
