@@ -5,7 +5,8 @@ use regex::Regex;
 const SFDISK_PARTITION_LINE_PATTERN: &str = r"(?P<full_path>/dev/(\w+(?P<part_num>\d+)))\s+:\s+(:?start=\s+)(?P<start_block>\d+)[,](?P<rest>.*)";
 
 lazy_static! {
-    static ref PARTITION_LINE_REGEX: Regex = Regex::new(SFDISK_PARTITION_LINE_PATTERN).unwrap();
+    static ref PARTITION_LINE_REGEX: Regex =
+        Regex::new(SFDISK_PARTITION_LINE_PATTERN).unwrap();
 }
 
 pub fn is_sfdisk_partition_line<'a>(line: &'a str) -> bool {
@@ -72,7 +73,6 @@ pub fn parse_sfdisk_partition_line<'a>(line: &'a str) -> Result<Partition, Strin
     }
 
     part.extras = extras;
-
     Ok(part)
 }
 
@@ -93,7 +93,7 @@ mod test_parse {
 
     #[test]
     fn test_regex() {
-        let s = "/dev/nvme0n1p1 : start=        2048, size=      409600, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE";
+        let s = "/dev/nvme0n1p1 : start=  2048, size=  409600, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE";
         let re = regex::Regex::new(SFDISK_PARTITION_LINE_PATTERN).unwrap();
         let caps = re.captures(s);
         assert!(caps.is_some());

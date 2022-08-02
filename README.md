@@ -1,7 +1,7 @@
 # sfdisk-sort-rs
 sfdisk-sort-rs is a text processing program for `sfdisk -d` dump output. It is a Rust clone of [`sfdisk-sort-go`](https://github.com/artnoi43/sfdisk-sort-go). Basically, it rearranges and renames your `sfdisk -d` partition output by start block, and prints the sorted (pretty) disk out for `sfdisk` to read the text and apply it back to the partition table.
 
-This program does NOT alter or touch your disk partition table, instead it just outputs the text for `sfdisk` to do so.
+This program does NOT alter or touch your disk partition table, instead it just outputs the text for `sfdisk` to do so. It currently supports the following Linux block device names: `sdXY`, `vdXY`, `nvmeXnYpZ`, `mmcblkXpY`.
 
 Unlike the Go version, this Rust program gets its input only from stdin. It's also implemented differently than the Go version in that this program uses regex to parse text.
 

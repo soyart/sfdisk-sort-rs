@@ -18,13 +18,13 @@ pub enum LinuxBlockDevice {
 
 const SCSI_REGEX: &str = r"sd[a-z]";
 const VIRT_REGEX: &str = r"vd[a-z]";
-const MMBCLK_REGEX: &str = r"mmcblk\d+";
 const NVME_REGEX: &str = r"nvme\d+[n]\d+";
+const MMBCLK_REGEX: &str = r"mmcblk\d+";
 
-const SCSI_PART_REGEX: &str = r"(?P<prefix>sd[a-z])(?P<part_num>\d+)";
-const VIRT_PART_REGEX: &str = r"(?P<prefix>vd[a-z])(?P<part_num>\d+)";
-const MMBCLK_PART_REGEX: &str = r"(?P<prefix>mmcblk\d+[p])(?P<part_num>\d+)";
-const NVME_PART_REGEX: &str = r"(?P<prefix>nvme\d+[n]\d+[p])(?P<part_num>\d+)";
+const SCSI_PART_REGEX: &str = r"(?P<prefix>/dev/sd[a-z])(?P<part_num>\d+)";
+const VIRT_PART_REGEX: &str = r"(?P<prefix>/dev/vd[a-z])(?P<part_num>\d+)";
+const NVME_PART_REGEX: &str = r"(?P<prefix>/dev/nvme\d+[n]\d+[p])(?P<part_num>\d+)";
+const MMBCLK_PART_REGEX: &str = r"(?P<prefix>/dev/mmcblk\d+[p])(?P<part_num>\d+)";
 
 lazy_static! {
     pub static ref BLK_REGEX: HashMap<LinuxBlockDevice, Regex> = HashMap::from([
@@ -96,10 +96,18 @@ pub fn linux_part_prefix_and_part_num(
 impl core::fmt::Debug for LinuxBlockDevice {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
-            self::LinuxBlockDevice::SCSI => write!(f, "{}", "SCSI"),
-            self::LinuxBlockDevice::VIRT => write!(f, "{}", "VIRT"),
-            self::LinuxBlockDevice::MMCBLK => write!(f, "{}", "MMCBLK"),
-            self::LinuxBlockDevice::NVME => write!(f, "{}", "NVME"),
+            self::LinuxBlockDevice::SCSI => {
+                write!(f, "{}", "SCSI")
+            }
+            self::LinuxBlockDevice::VIRT => {
+                write!(f, "{}", "VIRT")
+            }
+            self::LinuxBlockDevice::MMCBLK => {
+                write!(f, "{}", "MMCBLK")
+            }
+            self::LinuxBlockDevice::NVME => {
+                write!(f, "{}", "NVME")
+            }
         }
     }
 }
@@ -139,15 +147,16 @@ mod disk_tests {
         }
 
         let expected_captures: HashMap<(&str, ns), (&str, &str)> = HashMap::from([
-            ((sda1000, ns::SCSI), ("sda", "1000")),
-            ((sdc1, ns::SCSI), ("sdc", "1")),
-            ((vda1, ns::VIRT), ("vda", "1")),
-            ((mmcblk10p20, ns::MMCBLK), ("mmcblk10p", "20")),
-            ((nvme0n1p1, ns::NVME), ("nvme0n1p", "1")),
+            ((sda1000, ns::SCSI), ("/dev/sda", "1000")),
+            ((sdc1, ns::SCSI), ("/dev/sdc", "1")),
+            ((vda1, ns::VIRT), ("/dev/vda", "1")),
+            ((mmcblk10p20, ns::MMCBLK), ("/dev/mmcblk10p", "20")),
+            ((nvme0n1p1, ns::NVME), ("/dev/nvme0n1p", "1")),
         ]);
 
         for (test_tuple, expected_tuple) in expected_captures.iter() {
-            let result_tuple = linux_part_prefix_and_part_num(test_tuple.1, test_tuple.0).unwrap();
+            let result_tuple =
+                linux_part_prefix_and_part_num(test_tuple.1, test_tuple.0).unwrap();
             assert_eq!(result_tuple, *expected_tuple);
         }
     }

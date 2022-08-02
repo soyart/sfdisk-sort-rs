@@ -35,12 +35,15 @@ impl Partition {
         blk_dev: block::LinuxBlockDevice,
         new_designation: usize,
     ) -> Result<(), String> {
-        let (prefix, _part_num) = match block::linux_part_prefix_and_part_num(blk_dev, &self.name) {
-            Ok((pref, partn)) => (pref, partn),
-            Err(err) => return Err(err),
-        };
-        self.name = format!("/dev/{}{}", prefix, new_designation);
+        let (prefix, _part_num) =
+            match block::linux_part_prefix_and_part_num(blk_dev, &self.name) {
+                Ok((pref, partn)) => (pref, partn),
+                Err(err) => return Err(err),
+            };
+
+        self.name = format!("{}{}", prefix, new_designation);
         self.designation = new_designation;
+
         Ok(())
     }
 }
@@ -84,6 +87,7 @@ pub mod partition_tests {
                 this_disk.linux_block_device = correct_linux_device;
                 return Ok((this_disk, correct_linux_device));
             }
+
             Err(format!(
                 "disk name does match known Linux block device name (e.g. sdX, vdX, or nvmeXnY)"
             ))
@@ -127,10 +131,11 @@ pub mod partition_tests {
         expecteds.insert(2, p2048.clone());
         expecteds.insert(3, p2069.clone());
 
-        let (mut sda, _linux_blk) = crate::disk::Disk::new_disk_without_parts("/dev/sda").unwrap();
+        let (mut sda, _linux_blk) =
+            crate::disk::Disk::new_disk_without_parts("/dev/sda").unwrap();
+
         sda.partitions = vec![p2048, p2069, p2022, p1969];
-        sda.partitions
-            .sort_by(|a, b| a.start_block.cmp(&b.start_block));
+        sda.partitions.sort_by(|a, b| a.start_block.cmp(&b.start_block));
 
         for (i, sorted) in sda.partitions.iter().enumerate() {
             let expected = expecteds.get(&i).unwrap();

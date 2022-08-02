@@ -1,0 +1,8 @@
+max_width = 90
+chain_width = 64
+reorder_imports = false
+#blank_lines_lower_bound = 1
+#indent_style = "Block"
+#empty_item_single_line = true
+#brace_style = "AlwaysNextLine"
+#imports_layout = "Vertical"

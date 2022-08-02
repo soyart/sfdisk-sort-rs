@@ -7,7 +7,8 @@ use regex::Regex;
 const SFDISK_DEVICE_NAME_PATTERN: &str = r"(?:device:\s+)(?P<device_name>(?:/dev/).*)";
 
 lazy_static! {
-    static ref SFDISK_DEVICE_NAME_REGEX: Regex = Regex::new(SFDISK_DEVICE_NAME_PATTERN).unwrap();
+    static ref SFDISK_DEVICE_NAME_REGEX: Regex =
+        Regex::new(SFDISK_DEVICE_NAME_PATTERN).unwrap();
 }
 
 pub fn is_sfdisk_device_name_line(s: &str) -> bool {
@@ -32,25 +33,24 @@ pub fn parse_sfdisk_device_name_line(s: &str) -> Result<String, String> {
     ));
 }
 
-
-
 /// Parses the `sfdisk -d` text output into Disk.
 pub fn parse_full_disk(prog_input: String) -> Result<Disk, String> {
     let mut device_name: Option<String> = None;
     let mut header_lines: Vec<String> = Vec::new();
     let mut partitions: Vec<Partition> = Vec::new();
+
     for (c, input_line) in prog_input.lines().collect::<Vec<&str>>().iter().enumerate() {
         // Parse partition line (will continue)
         if parse::is_sfdisk_partition_line(input_line) {
             let part = match parse::parse_sfdisk_partition_line(input_line) {
                 Ok(valid_partition) => valid_partition,
                 Err(err) => {
-                    eprintln!("error parsing partition on line {}", c+1);
+                    eprintln!("error parsing partition on line {}", c + 1);
                     return Err(err);
-                },
+                }
             };
             partitions.push(part);
-            continue
+            continue;
         }
 
         // Parse device name (part of so-called 'header lines'), won't continue
@@ -60,7 +60,7 @@ pub fn parse_full_disk(prog_input: String) -> Result<Disk, String> {
                     device_name = Some(text);
                 }
                 Err(err) => {
-                    eprintln!("error parsing device name on line {}", c+1);
+                    eprintln!("error parsing device name on line {}", c + 1);
                     return Err(err);
                 }
             }
@@ -81,12 +81,11 @@ pub fn parse_full_disk(prog_input: String) -> Result<Disk, String> {
         Err(err) => {
             eprintln!("error creating new disk {}", err);
             return Err(err);
-        },
+        }
     };
 
     Ok(this_disk)
 }
-
 
 #[derive(Default, Debug, PartialEq)]
 pub struct Disk {
@@ -121,6 +120,7 @@ impl Disk {
         self.partitions
             .sort_by(|a, b| a.start_block.cmp(&b.start_block));
         let l = self.partitions.len();
+
         // TODO: fix this iteration
         for i in 0..l {
             let part = self.partitions.get(i);
@@ -134,13 +134,18 @@ impl Disk {
                         &part.name
                     )));
                 }
+
+                // Redesignate (update) partition fields to reflect the new sorted name.
                 match part.redesignate(self.linux_block_device, i + 1) {
                     Ok(_) => {
                         // Overwrite with redesignated partition
                         self.partitions[i] = part;
                     }
                     Err(err) => {
-                        return Err(format!("error redesignating partition {}", err));
+                        return Err(format!(
+                            "error redesignating partition {}: {}",
+                            part.name, err
+                        ));
                     }
                 }
             } else {
@@ -190,14 +195,14 @@ mod disk_test {
             name: String::from("/dev/sda"),
             linux_block_device: super::block::LinuxBlockDevice::SCSI,
             header_lines: Vec::new(),
-            partitions: Vec::new(),
+            partitions: vec![p2048, p2069, p2022, p1969],
         };
-        sda.partitions = vec![p2048, p2069, p2022, p1969];
+
         match sda.rearrange() {
-            Ok(_) => {}
             Err(err) => {
                 panic!("rearrange failed: {}", err);
             }
+            _ => {}
         }
 
         for (i, sorted) in sda.partitions.iter().enumerate() {
