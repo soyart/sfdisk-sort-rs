@@ -1,5 +1,8 @@
+use crate::error::{RegexError, RegexCapturesError};
+
 use lazy_static::lazy_static;
 use regex::Regex;
+use anyhow::{Error, Result, Context};
 
 use std::collections::HashMap;
 
@@ -65,30 +68,36 @@ pub fn linux_blk_name(device_name: &str) -> Option<LinuxBlockDevice> {
 pub fn linux_part_prefix_and_part_num(
     blk_dev: LinuxBlockDevice,
     part_name: &str,
-) -> Result<(&str, &str), String> {
+) -> Result<(&str, &str)> {
     let re = BLK_PART_REGEX.get(&blk_dev).unwrap();
     let caps = re.captures(part_name);
     if caps.is_none() {
-        return Err(format!(
-            "failed to match {:?} prefix and partition number for {}",
-            blk_dev, part_name
-        ));
+        return Err(Error::from(RegexError)).with_context(|| {
+            format!(
+                "failed to match {:?} prefix and partition number for {}",
+                blk_dev, part_name
+            )
+        });
     }
 
     let caps = caps.unwrap();
     let prefix = caps.name("prefix");
     if prefix.is_none() {
-        return Err(format!(
-            "missing prefix for {:?} (partition name {})",
-            blk_dev, part_name
-        ));
+        return Err(Error::from(RegexCapturesError)).with_context(|| {
+            format!(
+                "missing prefix for {:?} (partition name {})",
+                blk_dev, part_name
+            )
+        });
     }
     let part_num = caps.name("part_num");
     if part_num.is_none() {
-        return Err(format!(
-            "missing partition number for {:?} (partition name {})",
-            blk_dev, part_name
-        ));
+        return Err(Error::from(RegexCapturesError)).with_context(|| {
+            format!(
+                "missing partition number for {:?} (partition name {})",
+                blk_dev, part_name
+            )
+        });
     }
 
     Ok((prefix.unwrap().as_str(), part_num.unwrap().as_str()))

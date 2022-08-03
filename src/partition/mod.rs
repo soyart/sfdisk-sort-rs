@@ -2,6 +2,8 @@ pub mod parse;
 
 use crate::linux::block;
 
+use anyhow::Result;
+
 /// Represents what matters for sfdisk-sort to reassign the names in the partition table.
 /// Fields `designation` and `start_block` are used for sorting.
 // Trait Clone is now only used for testing - TODO: remove?
@@ -34,7 +36,7 @@ impl Partition {
         &mut self,
         blk_dev: block::LinuxBlockDevice,
         new_designation: usize,
-    ) -> Result<(), String> {
+    ) -> Result<()> {
         let (prefix, _part_num) =
             match block::linux_part_prefix_and_part_num(blk_dev, &self.name) {
                 Ok((pref, partn)) => (pref, partn),

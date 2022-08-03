@@ -1,8 +1,10 @@
-use crate::linux::block;
 use super::partition::{Partition, parse};
+use crate::linux::block;
+use crate::error::RegexCapturesError;
 
 use lazy_static::lazy_static;
 use regex::Regex;
+use anyhow::{Error, Result, Context};
 
 const SFDISK_DEVICE_NAME_PATTERN: &str = r"(?:device:\s+)(?P<device_name>(?:/dev/).*)";
 
@@ -15,29 +17,27 @@ pub fn is_sfdisk_device_name_line(s: &str) -> bool {
     SFDISK_DEVICE_NAME_REGEX.is_match(s)
 }
 
-pub fn parse_sfdisk_device_name_line(s: &str) -> Result<String, String> {
+pub fn parse_sfdisk_device_name_line(s: &str) -> Result<String> {
     let caps = SFDISK_DEVICE_NAME_REGEX.captures(s);
     if caps.is_none() {
-        return Err(format!(
-            "failed to parse device name from 'device' line: {}",
-            s
-        ));
+        return Err(Error::from(RegexCapturesError)).with_context(|| {
+            format!("failed to parse device name from 'device' line: {}", s)
+        });
     }
     let caps = caps.unwrap();
 
     let device_name = caps.name("device_name");
     if device_name.is_none() {
-        return Err(format!(
-            "failed to parse device name from 'device' line: {}",
-            s
-        ));
+        return Err(Error::from(RegexCapturesError)).with_context(|| {
+            format!("failed to parse device name from 'device' line: {}", s)
+        });
     }
 
     Ok(String::from(device_name.unwrap().as_str()))
 }
 
 /// Parses the `sfdisk -d` text output into Disk.
-pub fn parse_full_disk(prog_input: String) -> Result<Disk, String> {
+pub fn parse_full_disk(prog_input: String) -> Result<Disk> {
     let mut device_name: Option<String> = None;
     let mut header_lines: Vec<String> = Vec::new();
     let mut partitions: Vec<Partition> = Vec::new();
@@ -48,8 +48,9 @@ pub fn parse_full_disk(prog_input: String) -> Result<Disk, String> {
             let part = match parse::parse_sfdisk_partition_line(input_line) {
                 Ok(valid_partition) => valid_partition,
                 Err(err) => {
-                    eprintln!("error parsing partition on line {}", c + 1);
-                    return Err(err);
+                    return Err(err).with_context(|| {
+                        format!("error parsing partition on line {}", c + 1)
+                    });
                 }
             };
             partitions.push(part);
@@ -63,8 +64,9 @@ pub fn parse_full_disk(prog_input: String) -> Result<Disk, String> {
                     device_name = Some(text);
                 }
                 Err(err) => {
-                    eprintln!("error parsing device name on line {}", c + 1);
-                    return Err(err);
+                    return Err(err).with_context(|| {
+                        format!("error parsing device name on line {}", c + 1)
+                    });
                 }
             }
         }
@@ -72,18 +74,19 @@ pub fn parse_full_disk(prog_input: String) -> Result<Disk, String> {
     }
 
     if device_name.is_none() {
-        panic!("fatal: missing device name")
+        return Err(Error::from(RegexCapturesError))
+            .with_context(|| String::from("missing device_name"));
     }
     if header_lines.is_empty() {
-        panic!("fatal: missing header lines")
+        return Err(Error::from(RegexCapturesError))
+            .with_context(|| String::from("missing header lines"));
     }
 
     let device_name = device_name.unwrap();
     let this_disk = match Disk::new(&device_name, header_lines, partitions) {
         Ok(d) => d,
         Err(err) => {
-            eprintln!("error creating new disk {}", err);
-            return Err(err);
+            return Err(err).with_context(|| String::from("error creating new disk"));
         }
     };
 
@@ -103,7 +106,7 @@ impl Disk {
         disk_name: &str,
         header_lines: Vec<String>,
         partitions: Vec<Partition>,
-    ) -> Result<Self, String> {
+    ) -> Result<Self> {
         if let Some(correct_linux_device) = block::linux_blk_name(disk_name) {
             return Ok(Disk {
                 name: String::from(disk_name),
@@ -112,7 +115,7 @@ impl Disk {
                 partitions,
             });
         }
-        Err(format!(
+        Err(Error::from(RegexCapturesError)).with_context(|| format!(
             "disk name does match known Linux block device name (e.g. sdX, vdX, or nvmeXnY)"
         ))
     }

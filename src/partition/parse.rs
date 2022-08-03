@@ -1,6 +1,9 @@
-use super::Partition;
+use super::{Partition};
+use crate::error::RegexCapturesError;
+
 use lazy_static::lazy_static;
 use regex::Regex;
+use anyhow::{Error, Result, Context};
 
 const SFDISK_PARTITION_LINE_PATTERN: &str = r"(?P<full_path>/dev/(\w+(?P<part_num>\d+)))\s+:\s+(:?start=\s+)(?P<start_block>\d+)[,](?P<rest>.*)";
 
@@ -13,10 +16,10 @@ pub fn is_sfdisk_partition_line<'a>(line: &'a str) -> bool {
     PARTITION_LINE_REGEX.is_match(line)
 }
 
-pub fn parse_sfdisk_partition_line<'a>(line: &'a str) -> Result<Partition, String> {
+pub fn parse_sfdisk_partition_line<'a>(line: &'a str) -> Result<Partition> {
     let caps = PARTITION_LINE_REGEX.captures(line);
     if caps.is_none() {
-        return Err(String::from("bad line"));
+        return Err(Error::from(RegexCapturesError));
     }
 
     let mut part = Partition::default();
@@ -26,7 +29,8 @@ pub fn parse_sfdisk_partition_line<'a>(line: &'a str) -> Result<Partition, Strin
     if let Some(full_path) = caps.name("full_path") {
         part.name = String::from(full_path.as_str());
     } else {
-        return Err(String::from("missing full partition path"));
+        return Err(Error::from(RegexCapturesError))
+            .with_context(|| format!("key full_path not matched in {}", line));
     }
 
     if let Some(part_num) = caps.name("part_num") {
@@ -36,14 +40,14 @@ pub fn parse_sfdisk_partition_line<'a>(line: &'a str) -> Result<Partition, Strin
                 part.designation = num;
             }
             Err(err) => {
-                return Err(format!(
-                    "error parsing partition number {} to usize: {}",
-                    part_num, err
-                ))
+                return Err(Error::from(err)).with_context(|| {
+                    format!("error parsing decimal string to usize: {}", part_num)
+                });
             }
         }
     } else {
-        return Err(String::from("missing partition number"));
+        return Err(Error::new(RegexCapturesError))
+            .with_context(|| String::from("missing partition number"));
     }
 
     if let Some(start_block) = caps.name("start_block") {
@@ -53,14 +57,13 @@ pub fn parse_sfdisk_partition_line<'a>(line: &'a str) -> Result<Partition, Strin
                 part.start_block = num;
             }
             Err(err) => {
-                return Err(format!(
-                    "error parsing partition start block {} to usize: {}",
-                    start_block, err
-                ))
+                return Err(Error::from(err))
+                    .with_context(|| String::from("failed to parse start_block"))
             }
         }
     } else {
-        return Err(String::from("missing full partition start block"));
+        return Err(Error::from(RegexCapturesError))
+            .with_context(|| String::from("missing full partition name"));
     }
 
     if let Some(rest) = caps.name("rest") {
@@ -69,7 +72,8 @@ pub fn parse_sfdisk_partition_line<'a>(line: &'a str) -> Result<Partition, Strin
             extras.push(String::from(*extra));
         }
     } else {
-        return Err(String::from("missing the rest of the line"));
+        return Err(Error::from(RegexCapturesError))
+            .with_context(|| String::from("missing the rest of the line"));
     }
 
     part.extras = extras;

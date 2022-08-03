@@ -1,4 +1,5 @@
 mod disk;
+mod error;
 mod linux;
 mod partition;
 
@@ -74,11 +75,9 @@ mod test_main {
         let pretty_disk_input = fs::read_to_string(pretty_disk_file)
             .expect("failed to read pretty test text file");
 
-        let mut ugly_disk = parse_full_disk(String::from(ugly_disk_input))
-            .unwrap();
+        let mut ugly_disk = parse_full_disk(String::from(ugly_disk_input)).unwrap();
 
-        let pretty_disk = parse_full_disk(String::from(pretty_disk_input))
-            .unwrap();
+        let pretty_disk = parse_full_disk(String::from(pretty_disk_input)).unwrap();
 
         ugly_disk.rearrange().expect("failed to rearrange");
 
