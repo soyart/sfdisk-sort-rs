@@ -4,20 +4,21 @@ mod linux;
 mod partition;
 
 use std::io::{self, Read};
+use anyhow::{Error, Context};
 
-fn main() {
+fn main() -> Result<(), Error> {
     let prog_input = match get_stdin_string() {
-        Ok(s) => s,
+        Ok(s) => {
+            s
+        },
         Err(err) => {
-            eprintln!("{}", err);
-            panic!("{}", err);
+            return Err(err);
         }
     };
     let mut this_disk = match disk::parse_full_disk(prog_input) {
         Ok(the_disk) => the_disk,
         Err(err) => {
-            eprintln!("failed to parse full disk: {}", err);
-            panic!("{}", err);
+            return Err(err); 
         }
     };
 
@@ -30,6 +31,7 @@ fn main() {
 
     println!();
     println!("# See https://github.com/artnoi43/sfdisk-sort-rs/blob/main/README.md to see what to do whith this output");
+    Ok(())
 }
 
 /// Prints disk in `sfdisk -d` dump format. `disk::Disk` does not implements Display,
@@ -43,14 +45,15 @@ fn print_disk(this_disk: disk::Disk) {
     }
 }
 
-fn get_stdin_string() -> Result<String, String> {
+fn get_stdin_string() -> anyhow::Result<String> {
     let mut buf = String::new();
     let mut stdin = io::stdin();
 
     match stdin.read_to_string(&mut buf) {
         Err(err) => {
-            let err_msg = format!("error reading from stdin {}", err);
-            return Err(err_msg);
+            return Err(Error::from(err)).with_context(|| {
+                String::from("failed to read sfdisk output")
+            });
         }
         _ => {
             return Ok(buf);

@@ -12,14 +12,16 @@ lazy_static! {
         Regex::new(SFDISK_PARTITION_LINE_PATTERN).unwrap();
 }
 
-pub fn is_sfdisk_partition_line<'a>(line: &'a str) -> bool {
+pub fn is_sfdisk_partition_line(line: &'_ str) -> bool {
     PARTITION_LINE_REGEX.is_match(line)
 }
 
-pub fn parse_sfdisk_partition_line<'a>(line: &'a str) -> Result<Partition> {
+pub fn parse_sfdisk_partition_line(line: &'_ str) -> Result<Partition> {
     let caps = PARTITION_LINE_REGEX.captures(line);
     if caps.is_none() {
-        return Err(Error::from(RegexCapturesError));
+        return Err(Error::from(RegexCapturesError)).with_context(|| {
+            String::from("none match was captured")
+        });
     }
 
     let mut part = Partition::default();
