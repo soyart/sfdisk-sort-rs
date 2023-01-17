@@ -115,6 +115,7 @@ impl Disk {
                 partitions,
             });
         }
+
         Err(Error::from(RegexCapturesError)).with_context(|| format!(
             "disk name does match known Linux block device name (e.g. sdX, vdX, or nvmeXnY)"
         ))
@@ -129,9 +130,8 @@ impl Disk {
         // Redesignate all partitions based on sorted indices
         for (i, part) in self.partitions.iter_mut().enumerate() {
             if let Some(re) = block::BLK_REGEX.get(&self.linux_block_device) {
-                let caps = re.captures(&part.name);
-
-                if caps.is_none() {
+                // Check if part.name is a valid Regex.
+                if re.captures(&part.name).is_none() {
                     return Err(String::from(format!(
                         "failed to get partition number for {}",
                         &part.name
@@ -139,15 +139,11 @@ impl Disk {
                 }
 
                 // Redesignate (update) partition fields to reflect the new sorted name.
-                match part.redesignate(self.linux_block_device, i + 1) {
-                    Err(err) => {
-                        return Err(format!(
-                            "error redesignating partition {}: {}",
-                            part.name, err
-                        ));
-                    }
-
-                    _ => continue,
+                if let Err(err) = part.redesignate(self.linux_block_device, i + 1) {
+                    return Err(format!(
+                        "error redesignating partition {}: {}",
+                        part.name, err
+                    ));
                 }
             } else {
                 return Err(String::from(
@@ -173,6 +169,7 @@ mod disk_test {
             "device: /dev/mmcblk2",
             "device: /dev/nvme17n1",
         ];
+
         for name in names {
             assert!(SFDISK_DEVICE_NAME_REGEX.is_match(name));
         }
@@ -199,11 +196,8 @@ mod disk_test {
             partitions: vec![p2048, p2069, p2022, p1969],
         };
 
-        match sda.rearrange() {
-            Err(err) => {
-                panic!("rearrange failed: {}", err);
-            }
-            _ => {}
+        if let Err(err) = sda.rearrange() {
+            panic!("rearrange failed: {}", err);
         }
 
         for (i, sorted) in sda.partitions.iter().enumerate() {
