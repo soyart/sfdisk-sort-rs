@@ -126,7 +126,7 @@ impl Disk {
         self.partitions
             .sort_by(|a, b| a.start_block.cmp(&b.start_block));
 
-        // TODO: fix this iteration
+        // Redesignate all partitions based on sorted indices
         for (i, part) in self.partitions.iter_mut().enumerate() {
             if let Some(re) = block::BLK_REGEX.get(&self.linux_block_device) {
                 let caps = re.captures(&part.name);
