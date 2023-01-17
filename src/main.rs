@@ -37,14 +37,12 @@ fn get_stdin_string() -> anyhow::Result<String> {
     let mut buf = String::new();
     let mut stdin = io::stdin();
 
-    match stdin.read_to_string(&mut buf) {
-        Err(err) => {
-            return Err(Error::from(err))
-                .with_context(|| String::from("failed to read sfdisk output"));
-        }
-
-        _ => Ok(buf),
+    if let Err(err) = stdin.read_to_string(&mut buf) {
+        return Err(Error::from(err))
+            .with_context(|| String::from("failed to read sfdisk output"));
     }
+
+    Ok(buf)
 }
 
 #[cfg(test)]
