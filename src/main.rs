@@ -7,8 +7,8 @@ use std::io::{self, Read};
 use anyhow::{Error, Context};
 
 fn main() -> Result<(), Error> {
-    let prog_input = get_stdin_string()?;
-    let mut this_disk = disk::parse_full_disk(prog_input)?;
+    let sfdisk_output = get_stdin_string()?;
+    let mut this_disk = disk::parse_sfdisk_full_disk(sfdisk_output)?;
 
     // Rearrange disk partitions by start_block
     this_disk
@@ -47,7 +47,7 @@ fn get_stdin_string() -> anyhow::Result<String> {
 
 #[cfg(test)]
 mod test_main {
-    use crate::disk::parse_full_disk;
+    use crate::disk::parse_sfdisk_full_disk;
 
     #[test]
     fn test_prog() {
@@ -62,9 +62,11 @@ mod test_main {
         let pretty_disk_input = fs::read_to_string(pretty_disk_file)
             .expect("failed to read pretty test text file");
 
-        let mut ugly_disk = parse_full_disk(String::from(ugly_disk_input)).unwrap();
+        let mut ugly_disk =
+            parse_sfdisk_full_disk(String::from(ugly_disk_input)).unwrap();
 
-        let pretty_disk = parse_full_disk(String::from(pretty_disk_input)).unwrap();
+        let pretty_disk =
+            parse_sfdisk_full_disk(String::from(pretty_disk_input)).unwrap();
 
         ugly_disk.rearrange().expect("failed to rearrange");
 

@@ -37,7 +37,7 @@ pub fn parse_sfdisk_device_name_line(s: &str) -> Result<String> {
 }
 
 /// Parses the `sfdisk -d` text output into Disk.
-pub fn parse_full_disk(prog_input: String) -> Result<Disk> {
+pub fn parse_sfdisk_full_disk(prog_input: String) -> Result<Disk> {
     let mut device_name: Option<String> = None;
     let mut header_lines: Vec<String> = Vec::new();
     let mut partitions: Vec<Partition> = Vec::new();
