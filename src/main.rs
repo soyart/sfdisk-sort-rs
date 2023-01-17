@@ -7,20 +7,8 @@ use std::io::{self, Read};
 use anyhow::{Error, Context};
 
 fn main() -> Result<(), Error> {
-    let prog_input = match get_stdin_string() {
-        Ok(s) => {
-            s
-        },
-        Err(err) => {
-            return Err(err);
-        }
-    };
-    let mut this_disk = match disk::parse_full_disk(prog_input) {
-        Ok(the_disk) => the_disk,
-        Err(err) => {
-            return Err(err); 
-        }
-    };
+    let prog_input = get_stdin_string()?;
+    let mut this_disk = disk::parse_full_disk(prog_input)?;
 
     // Rearrange disk partitions by start_block
     this_disk
@@ -51,13 +39,11 @@ fn get_stdin_string() -> anyhow::Result<String> {
 
     match stdin.read_to_string(&mut buf) {
         Err(err) => {
-            return Err(Error::from(err)).with_context(|| {
-                String::from("failed to read sfdisk output")
-            });
+            return Err(Error::from(err))
+                .with_context(|| String::from("failed to read sfdisk output"));
         }
-        _ => {
-            return Ok(buf);
-        }
+
+        _ => Ok(buf),
     }
 }
 

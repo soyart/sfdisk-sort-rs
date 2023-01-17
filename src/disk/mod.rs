@@ -130,6 +130,7 @@ impl Disk {
         for (i, part) in self.partitions.iter_mut().enumerate() {
             if let Some(re) = block::BLK_REGEX.get(&self.linux_block_device) {
                 let caps = re.captures(&part.name);
+
                 if caps.is_none() {
                     return Err(String::from(format!(
                         "failed to get partition number for {}",
@@ -146,7 +147,7 @@ impl Disk {
                         ));
                     }
 
-                    Ok(_) => continue,
+                    _ => continue,
                 }
             } else {
                 return Err(String::from(
