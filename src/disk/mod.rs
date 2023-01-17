@@ -125,13 +125,9 @@ impl Disk {
         // Sort partition by start_block
         self.partitions
             .sort_by(|a, b| a.start_block.cmp(&b.start_block));
-        let l = self.partitions.len();
 
         // TODO: fix this iteration
-        for i in 0..l {
-            let part = self.partitions.get(i);
-            let mut part = part.unwrap().clone();
-
+        for (i, part) in self.partitions.iter_mut().enumerate() {
             if let Some(re) = block::BLK_REGEX.get(&self.linux_block_device) {
                 let caps = re.captures(&part.name);
                 if caps.is_none() {
@@ -143,16 +139,14 @@ impl Disk {
 
                 // Redesignate (update) partition fields to reflect the new sorted name.
                 match part.redesignate(self.linux_block_device, i + 1) {
-                    Ok(_) => {
-                        // Overwrite with redesignated partition
-                        self.partitions[i] = part;
-                    }
                     Err(err) => {
                         return Err(format!(
                             "error redesignating partition {}: {}",
                             part.name, err
                         ));
                     }
+
+                    Ok(_) => continue,
                 }
             } else {
                 return Err(String::from(
@@ -160,6 +154,7 @@ impl Disk {
                 ));
             }
         }
+
         Ok(())
     }
 }
@@ -168,8 +163,6 @@ impl Disk {
 mod disk_test {
     use super::{block, Disk, SFDISK_DEVICE_NAME_REGEX};
     use crate::partition::Partition;
-
-    use std::collections::HashMap;
 
     #[test]
     fn test_device_name() {
@@ -186,16 +179,17 @@ mod disk_test {
 
     #[test]
     fn test_rearrange() {
-        let p2048 = Partition::new_from_start_block(2048, block::LinuxBlockDevice::SCSI);
-        let p2022 = Partition::new_from_start_block(2022, block::LinuxBlockDevice::SCSI);
-        let p1969 = Partition::new_from_start_block(1969, block::LinuxBlockDevice::SCSI);
-        let p2069 = Partition::new_from_start_block(2069, block::LinuxBlockDevice::SCSI);
+        let p2048 =
+            Partition::new_from_start_block(1, 2048, block::LinuxBlockDevice::SCSI);
+        let p2022 =
+            Partition::new_from_start_block(2, 2022, block::LinuxBlockDevice::SCSI);
+        let p1969 =
+            Partition::new_from_start_block(3, 1969, block::LinuxBlockDevice::SCSI);
+        let p2069 =
+            Partition::new_from_start_block(4, 2069, block::LinuxBlockDevice::SCSI);
 
-        let mut expecteds = HashMap::new();
-        expecteds.insert(0, p1969.clone());
-        expecteds.insert(1, p2022.clone());
-        expecteds.insert(2, p2048.clone());
-        expecteds.insert(3, p2069.clone());
+        let mut expecteds =
+            vec![p1969.clone(), p2022.clone(), p2048.clone(), p2069.clone()];
 
         let mut sda = Disk {
             name: String::from("/dev/sda"),
@@ -212,8 +206,12 @@ mod disk_test {
         }
 
         for (i, sorted) in sda.partitions.iter().enumerate() {
-            let _expected = expecteds.get(&i).unwrap();
-            assert_eq!(sorted.designation, i + 1);
+            let expected = expecteds.get_mut(i).unwrap();
+            // Update expected designation and names before asserting
+            expected.designation = i + 1;
+            expected.name = format!("{}{}", sda.name, expected.designation);
+
+            assert_eq!(sorted, expected);
         }
     }
 }

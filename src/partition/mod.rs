@@ -57,22 +57,21 @@ pub mod partition_tests {
     use crate::disk::Disk;
     use crate::linux::block;
 
-    use std::collections::HashMap;
-
     impl Partition {
         pub(crate) fn new_from_start_block(
+            designation: usize,
             start_block: usize,
             blk: block::LinuxBlockDevice,
         ) -> Self {
             let part_name = match blk {
-                block::LinuxBlockDevice::NVME => String::from("/dev/nvme0n1p69"),
-                block::LinuxBlockDevice::SCSI => String::from("/dev/sda69"),
-                block::LinuxBlockDevice::VIRT => String::from("/dev/vda69"),
-                block::LinuxBlockDevice::MMCBLK => String::from("/dev/mmcblk69"),
+                block::LinuxBlockDevice::NVME => format!("/dev/nvme0n1p{}", designation),
+                block::LinuxBlockDevice::SCSI => format!("/dev/sda{}", designation),
+                block::LinuxBlockDevice::VIRT => format!("/dev/vda{}", designation),
+                block::LinuxBlockDevice::MMCBLK => format!("/dev/mmcblk{}", designation),
             };
             Partition {
-                designation: 69,
-                start_block: start_block,
+                designation,
+                start_block,
                 name: part_name,
                 extras: Vec::new(),
             }
@@ -122,25 +121,24 @@ pub mod partition_tests {
     // and that we can actually sort them for a disk
     #[test]
     fn test_sort_by_start_block() {
-        let p2048 = Partition::new_from_start_block(2048, block::LinuxBlockDevice::SCSI);
-        let p2022 = Partition::new_from_start_block(2022, block::LinuxBlockDevice::SCSI);
-        let p1969 = Partition::new_from_start_block(1969, block::LinuxBlockDevice::SCSI);
-        let p2069 = Partition::new_from_start_block(2069, block::LinuxBlockDevice::SCSI);
-
-        let mut expecteds = HashMap::new();
-        expecteds.insert(0, p1969.clone());
-        expecteds.insert(1, p2022.clone());
-        expecteds.insert(2, p2048.clone());
-        expecteds.insert(3, p2069.clone());
+        let p2048 =
+            Partition::new_from_start_block(1, 2048, block::LinuxBlockDevice::SCSI);
+        let p2022 =
+            Partition::new_from_start_block(2, 2022, block::LinuxBlockDevice::SCSI);
+        let p1969 =
+            Partition::new_from_start_block(3, 1969, block::LinuxBlockDevice::SCSI);
+        let p2069 =
+            Partition::new_from_start_block(4, 2069, block::LinuxBlockDevice::SCSI);
 
         let (mut sda, _linux_blk) =
             crate::disk::Disk::new_disk_without_parts("/dev/sda").unwrap();
 
+        let expecteds = vec![p1969.clone(), p2022.clone(), p2048.clone(), p2069.clone()];
         sda.partitions = vec![p2048, p2069, p2022, p1969];
-        sda.partitions.sort_by(|a, b| a.start_block.cmp(&b.start_block));
 
+        sda.partitions.sort_by(|a, b| a.start_block.cmp(&b.start_block));
         for (i, sorted) in sda.partitions.iter().enumerate() {
-            let expected = expecteds.get(&i).unwrap();
+            let expected = expecteds.get(i).unwrap();
             assert_eq!(sorted, expected);
         }
     }
